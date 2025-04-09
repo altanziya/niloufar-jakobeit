@@ -2,30 +2,50 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import CharacterHover from '@/components/common/CharacterHover';
 
 interface PreloaderProps {
   onComplete?: () => void;
   customDuration?: number;
   heroContent?: React.ReactNode;
-  isTransitioning?: boolean; // Neuer Prop für Transition-Status
+  isTransitioning?: boolean;
+  isShortVersion?: boolean; // Neuer Parameter für interne Navigation
 }
+
+const DEFAULT_DURATION = 2800;
 
 const Preloader = ({ 
   onComplete, 
-  customDuration = 3000, 
+  customDuration = DEFAULT_DURATION, 
   heroContent,
-  isTransitioning = false
+  isTransitioning = false,
+  isShortVersion = false
 }: PreloaderProps) => {
   const [isComplete, setIsComplete] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showHero, setShowHero] = useState(false);
   const [internalTransitioning, setInternalTransitioning] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  // Berechnung des Speedup-Faktors
+  const speedFactor = DEFAULT_DURATION / customDuration;
 
   useEffect(() => {
-    // Simuliere Ladefortschritt
+    // Check for reduced motion preference
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+
+    const handleMediaChange = (e: MediaQueryListEvent) => {
+      setPrefersReducedMotion(e.matches);
+    };
+    
+    mediaQuery.addEventListener('change', handleMediaChange);
+    
+    // Simuliere Ladefortschritt - schneller für kurze Version
+    const progressStep = isShortVersion ? 10 : 4; // Schnellerer Fortschritt
     const interval = setInterval(() => {
       setProgress((prev) => {
-        const newProgress = prev + 4;
+        const newProgress = prev + progressStep;
         if (newProgress >= 100) {
           clearInterval(interval);
           return 100;
@@ -34,32 +54,36 @@ const Preloader = ({
       });
     }, customDuration / 400);
 
-    // Zeige die Hero-Komponente SEHR früh
+    // Zeige die Hero-Komponente SEHR früh - noch früher für kurze Version
+    const heroTimeFactor = isShortVersion ? 0.01 : 0.05;
     const heroTimer = setTimeout(() => {
       setShowHero(true);
-    }, customDuration * 0.05); // Nach nur 5% der Zeit
+    }, customDuration * heroTimeFactor);
 
     // Haupttimer für Preloader
     const timer = setTimeout(() => {
       setInternalTransitioning(true);
       
       // Eine kurze Verzögerung bevor wir den Callback aufrufen
+      const callbackDelay = isShortVersion ? 80 : 200; 
       setTimeout(() => {
         if (onComplete) onComplete();
         
         // Erhöhen wir die Verzögerung bevor wir intern als abgeschlossen markieren
+        const completionDelay = isShortVersion ? 200 : 500;
         setTimeout(() => {
           setIsComplete(true);
-        }, 500); // Längere Verzögerung 
-      }, 200);
-    }, customDuration);
+        }, completionDelay);
+      }, callbackDelay);
+    }, prefersReducedMotion ? 500 : customDuration);
 
     return () => {
       clearTimeout(timer);
       clearTimeout(heroTimer);
       clearInterval(interval);
+      mediaQuery.removeEventListener('change', handleMediaChange);
     };
-  }, [customDuration, onComplete]);
+  }, [customDuration, onComplete, prefersReducedMotion, isShortVersion]);
 
   // Anzahl der vertikalen Balken
   const bars = 5;
@@ -67,28 +91,27 @@ const Preloader = ({
   // Easing für explosivere Animation mit langsamem Start
   const ease = [0.2, 0, 0.1, 1];
   
-  // Animationsdauer pro Balken
-  const animationDuration = 0.45;
+  // Animationsdauer pro Balken - schneller für kurze Version
+  const animationDuration = prefersReducedMotion ? 0.15 : (isShortVersion ? 0.25 : 0.45);
   
-  // Basisverzögerung
-  const baseDelay = 0.03;
+  // Basisverzögerung - schneller für kurze Version
+  const baseDelay = prefersReducedMotion ? 0.01 : (isShortVersion ? 0.015 : 0.03);
   
   // Berechnung der Verzögerung für jeden Balken
   const getStaggerDelay = (index: number) => {
-    return index === 0 ? 0 : baseDelay + (index * animationDuration * 0.5);
-  };
-
-  // Verzögerung vor dem Aufrufen von onComplete
-  const handleExitComplete = () => {
-    // Nichts tun - wir verwalten jetzt alles über den onComplete Callback
+    const delay = index === 0 ? 0 : baseDelay + (index * animationDuration * 0.5);
+    return delay;
   };
 
   // Die Hauptanimation sollte nur starten, wenn internalTransitioning true ist
-  // isTransitioning vom Parent wird für Opazität verwendet
   const shouldAnimate = internalTransitioning;
 
+  // Transition Zeit für die Text-Animation - schneller für kurze Version
+  const textAnimationDuration = isShortVersion ? 0.6 : 1.2;
+  const textAnimationDelay = isShortVersion ? 0.2 : 0.4;
+
   return (
-    <AnimatePresence mode="wait" onExitComplete={handleExitComplete}>
+    <AnimatePresence mode="wait" onExitComplete={() => {}}>
       {!isComplete && (
         <>
           {/* Hero im Hintergrund - sehr früh mit weicher Überblendung */}
@@ -96,9 +119,10 @@ const Preloader = ({
             className="fixed inset-0 z-30 overflow-hidden bg-neutral-900"
             style={{ 
               opacity: showHero ? 1 : 0,
-              transition: 'opacity 2s ease-in-out', // Sehr lange, weiche Überblendung
+              transition: `opacity ${isShortVersion ? '1s' : '2s'} ease-in-out`, // Kürzere Überblendung für kurze Version
               pointerEvents: 'none'
             }}
+            aria-hidden="true"
           >
             {heroContent}
           </div>
@@ -108,16 +132,22 @@ const Preloader = ({
             className="fixed inset-0 z-50 flex flex-row pointer-events-none"
             initial={{ opacity: 1 }}
             animate={{ 
-              opacity: isTransitioning ? 0.99 : 1 // Minimal reduzierte Opazität während des Übergangs
+              opacity: isTransitioning ? 0.99 : 1
             }}
             exit={{ 
               opacity: shouldAnimate ? 0 : 1, 
               transition: {
-                duration: 0.9, // Längere Ausblendung
-                delay: animationDuration + getStaggerDelay(bars - 1) + 0.1,
+                duration: isShortVersion ? 0.5 : 0.9,
+                delay: animationDuration + getStaggerDelay(bars - 1) + (isShortVersion ? 0.05 : 0.1),
                 ease: [0.19, 1, 0.22, 1] 
               }
             }}
+            role="progressbar"
+            aria-busy={!isComplete}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={progress}
+            aria-label="Loading page content"
           >
             {/* Die 5 vertikalen Balken */}
             {Array.from({ length: bars }).map((_, index) => (
@@ -160,64 +190,49 @@ const Preloader = ({
             
             {/* Preloader Inhalte (Logo, Titel, Fortschrittsleiste) */}
             <motion.div
-              className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-50"
+              className="absolute inset-0 flex flex-col items-center justify-center pointer-events-auto z-50"
               initial={{ opacity: 1 }}
               exit={{ 
                 opacity: shouldAnimate ? 0 : 1,
                 transition: {
-                  duration: 0.8,
+                  duration: isShortVersion ? 0.4 : 0.8,
                   ease,
-                  delay: 0.1
+                  delay: isShortVersion ? 0.05 : 0.1
                 }
               }}
             >
               <motion.h1
-                className="text-7xl sm:text-8xl md:text-9xl lg:text-[12rem] font-serif tracking-wider uppercase text-[#b69a7e]"
+                className="text-7xl sm:text-8xl md:text-9xl lg:text-[12rem] font-serif tracking-wider uppercase perspective-1000"
                 initial={{ opacity: 0, letterSpacing: '-0.05em' }}
                 animate={{ 
                   opacity: 1, 
                   letterSpacing: '0.1em',
-                  transition: { duration: 1.2, ease: [0.19, 1, 0.22, 1] }
+                  transition: { duration: textAnimationDuration, ease: [0.19, 1, 0.22, 1] }
                 }}
                 style={{ 
                   fontFamily: 'Playfair Display, serif', 
-                  willChange: 'opacity, letter-spacing' 
+                  willChange: 'opacity, letter-spacing',
+                  transform: 'perspective(1000px) rotateX(0.5deg)',
+                  transformStyle: 'preserve-3d'
                 }}
               >
-                MY SWEET HOME
+                <CharacterHover text="MY SWEET HOME" isPreloader={true} />
               </motion.h1>
               
               <motion.h2
-                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif text-[#b69a7e] mt-4"
+                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif mt-4 perspective-1000"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.4, duration: 0.8, ease: [0.19, 1, 0.22, 1] }}
+                transition={{ delay: textAnimationDelay / speedFactor, duration: textAnimationDuration, ease: [0.19, 1, 0.22, 1] }}
                 style={{ 
                   fontFamily: 'Playfair Display, serif', 
-                  willChange: 'opacity' 
+                  willChange: 'opacity',
+                  transform: 'perspective(1000px) rotateX(0.5deg)',
+                  transformStyle: 'preserve-3d'
                 }}
               >
-                by Nilou
+                <CharacterHover text="by Nilou" isPreloader={true} />
               </motion.h2>
-              
-              <div className="relative h-0.5 w-32 sm:w-48 md:w-64 bg-[#b69a7e]/20 mt-8">
-                <motion.div
-                  className="absolute top-0 left-0 h-full bg-[#b69a7e]/80"
-                  initial={{ width: 0 }}
-                  animate={{ width: '100%' }}
-                  transition={{ duration: customDuration / 1000, ease: 'linear' }}
-                  style={{ willChange: 'transform' }}
-                />
-              </div>
-              
-              <motion.p 
-                className="text-[#b69a7e]/70 text-sm sm:text-base mt-4 tracking-wider"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.8, duration: 0.6 }}
-              >
-                {progress}%
-              </motion.p>
             </motion.div>
           </motion.div>
         </>

@@ -1,35 +1,62 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import Hero from '@/components/sections/Hero';
-import About from '@/components/sections/About';
-import ParallaxSectionTransition from '@/components/transitions/ParallaxSectionTransition';
+import { useEffect, useState } from 'react';
+import SectionRenderer from '@/components/layout/SectionRenderer';
+import { sections } from '@/config/sections';
 
 export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [aboutAnimationTrigger, setAboutAnimationTrigger] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
-  // Seite als geladen markieren
+  // Mark page as loaded and ensure scrollability
   useEffect(() => {
     setIsLoaded(true);
-  }, []);
-
-  // Callback für die Auslösung der About-Animationen
-  const triggerAboutAnimations = useCallback(() => {
-    setAboutAnimationTrigger(true);
+    
+    // Force document body to be scrollable
+    document.body.style.overflow = 'auto';
+    document.body.style.height = 'auto';
+    document.body.style.overscrollBehavior = 'auto'; // Important for iOS
+    
+    return () => {
+      // Cleanup if needed
+      document.body.style.overflow = '';
+      document.body.style.height = '';
+      document.body.style.overscrollBehavior = '';
+    };
   }, []);
 
   if (!isLoaded) return null;
+  
+  // Error fallback
+  if (hasError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-800 p-4">
+        <div className="max-w-md text-center">
+          <h2 className="text-2xl font-bold mb-4">Something went wrong</h2>
+          <p className="mb-4">There was an error loading this page. Please try refreshing.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-700 transition-colors"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-  return (
-    <div className="bg-neutral-900">
-      {/* Hero zu About mit Parallaxtransition - exakt wie beschrieben */}
-      <ParallaxSectionTransition
-        firstSection={<Hero />}
-        secondSection={<About forceAnimation={aboutAnimationTrigger} />}
-        bgColor="#191919"
-        triggerAnimations={triggerAboutAnimations}
-      />
-    </div>
-  );
+  try {
+    return (
+      <div className="bg-[#f8f7f5]"> {/* Off-White Hintergrund */}
+        <SectionRenderer 
+          sections={sections} 
+          useParallaxTransition={true} 
+        />
+      </div>
+    );
+  } catch (error) {
+    console.error('Error rendering page:', error);
+    setHasError(true);
+    return null;
+  }
 }

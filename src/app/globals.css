@@ -2,17 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Font-Import für Playfair Display */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap');
+
+/* Font-Imports für Cards Parallax */
+@font-face {
+  font-family: 'Title';
+  src: url('/fonts/Neglige.otf');
+}
+@font-face {
+  font-family: 'Body';
+  src: url('/fonts/NeueMontreal_Medium.otf');
+}
+
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 248, 248, 248;
+  /* Von dunklen zu hellen Farben ändern */
+  --foreground-rgb: 51, 51, 51;
+  --background-start-rgb: 248, 247, 245; /* Off-White Farbton */
   --background-end-rgb: 255, 255, 255;
+  /* Animation Ease Curves für gleichmäßige Übergänge */
+  --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+  /* Color variables for easier maintenance */
+  --text-primary: #333333;
+  --text-hover: #b69a7e;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 10, 10, 10;
-    --background-end-rgb: 0, 0, 0;
+    /* Dark mode Werte anpassen - überschreiben wenn dark mode aktiv ist */
+    --foreground-rgb: 248, 247, 245;
+    --background-start-rgb: 51, 51, 51;
+    --background-end-rgb: 34, 34, 34;
   }
 }
 
@@ -27,9 +49,19 @@ body {
   overflow-x: hidden;
 }
 
+/* Character hover effect */
+.character-hover {
+  transition: color 2s ease-out; /* Langsamere Transition von 0.3s auf 1.2s */
+}
+
+.character-hover:hover {
+  color: var(--text-hover) !important;
+}
+
 /* Enable smooth scrolling */
 html {
   scroll-behavior: smooth;
+  overscroll-behavior: none;
 }
 
 html.lenis-smooth {
@@ -42,8 +74,8 @@ html.lenis-smooth {
 
 /* Custom Selection Styling */
 ::selection {
-  background-color: rgba(0, 0, 0, 0.8);
-  color: white;
+  background-color: rgba(182, 154, 126, 0.3);
+  color: #333;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -87,14 +119,22 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Improve focus states */
-a:focus, button:focus, input:focus, select:focus, textarea:focus {
-  outline: 2px solid rgba(0, 0, 0, 0.2);
+a:focus-visible, 
+button:focus-visible, 
+input:focus-visible, 
+select:focus-visible, 
+textarea:focus-visible {
+  outline: 3px solid #b69a7e;
   outline-offset: 4px;
 }
 
 @media (prefers-color-scheme: dark) {
-  a:focus, button:focus, input:focus, select:focus, textarea:focus {
-    outline: 2px solid rgba(255, 255, 255, 0.2);
+  a:focus-visible, 
+  button:focus-visible, 
+  input:focus-visible, 
+  select:focus-visible, 
+  textarea:focus-visible {
+    outline: 3px solid #93c5fd;
   }
 }
 
@@ -125,12 +165,17 @@ img {
   user-select: none;
 }
 
-/* In globals.css hinzufügen */
+/* Menu-Overlay und Scroll Lock */
 body.no-scroll {
-  overflow: hidden;
+  overflow: hidden !important;
   position: fixed;
   width: 100%;
   height: 100%;
+}
+
+/* Spezifischer Style für das Menü */
+.menu-open {
+  overflow: hidden;
 }
 
 .menu-overlay {
@@ -143,4 +188,43 @@ body.no-scroll {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Animation-Optimierungen für bessere Performance */
+@layer utilities {
+  .will-change-transform {
+    will-change: transform;
+  }
+  
+  .will-change-opacity {
+    will-change: opacity;
+  }
+  
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+  
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+  
+  .transform-style-3d {
+    transform-style: preserve-3d;
+  }
+}
+
+/* Prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .character-hover {
+    transition: none;
+  }
+  
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+  
+  .animate-float {
+    animation: none !important;
+  }
 }

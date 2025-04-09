@@ -45,7 +45,7 @@ export default function RootLayout({
     <html lang="de">
       <head>
         <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/images/Logo2.png" />
       </head>
       <body className="scroll-smooth bg-white dark:bg-neutral-900 text-black dark:text-white">
         <ClientLayout>{children}</ClientLayout>

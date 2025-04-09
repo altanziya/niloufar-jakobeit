@@ -4,19 +4,31 @@ import { useRef, useEffect } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import Lenis from '@studio-freight/lenis';
 
-interface ParallaxSectionTransitionProps {
+export interface ParallaxSectionTransitionProps {
   firstSection: React.ReactNode;
   secondSection: React.ReactNode;
   bgColor?: string;
-  triggerAnimations?: () => void;
+  triggerAnimations?: boolean;
+  onAnimationTriggered?: () => void;
+  firstSectionScaleRange?: [number, number];
+  firstSectionRotateRange?: [number, number];
+  secondSectionScaleRange?: [number, number];
+  secondSectionRotateRange?: [number, number];
+  triggerThreshold?: number;
 }
 
-const ParallaxSectionTransition: React.FC<ParallaxSectionTransitionProps> = ({
+const ParallaxSectionTransition = ({
   firstSection,
   secondSection,
   bgColor = "#191919",
-  triggerAnimations
-}) => {
+  triggerAnimations = false,
+  onAnimationTriggered,
+  firstSectionScaleRange = [1, 0.8],
+  firstSectionRotateRange = [0, -5],
+  secondSectionScaleRange = [0.8, 1],
+  secondSectionRotateRange = [3, 0],
+  triggerThreshold = 0.2
+}: ParallaxSectionTransitionProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Exakt wie in der Beschreibung: start start bis end end
@@ -26,23 +38,25 @@ const ParallaxSectionTransition: React.FC<ParallaxSectionTransitionProps> = ({
   });
 
   // Skalierung und Rotation für erste Sektion: 1 -> 0.8 und 0 -> -5
-  const scale1 = useTransform(scrollYProgress, [0, 1], [1, 0.8]);
-  const rotate1 = useTransform(scrollYProgress, [0, 1], [0, -5]);
+  const scale1 = useTransform(scrollYProgress, [0, 1], firstSectionScaleRange);
+  const rotate1 = useTransform(scrollYProgress, [0, 1], firstSectionRotateRange);
 
   // Skalierung und Rotation für zweite Sektion: 0.8 -> 1 und -5 -> 0
-  const scale2 = useTransform(scrollYProgress, [0, 1], [0.8, 1]);
-  const rotate2 = useTransform(scrollYProgress, [0, 1], [-5, 0]);
+  const scale2 = useTransform(scrollYProgress, [0, 1], secondSectionScaleRange);
+  const rotate2 = useTransform(scrollYProgress, [0, 1], secondSectionRotateRange);
 
   // Animationstrigger
   useEffect(() => {
+    if (!onAnimationTriggered) return;
+    
     const unsubscribe = scrollYProgress.onChange(value => {
-      if (value > 0.2 && triggerAnimations) {
-        triggerAnimations();
+      if (triggerAnimations && value > triggerThreshold) {
+        onAnimationTriggered();
       }
     });
     
     return () => unsubscribe();
-  }, [scrollYProgress, triggerAnimations]);
+  }, [scrollYProgress, onAnimationTriggered, triggerAnimations, triggerThreshold]);
 
   // Lenis smooth scroll genau wie in der Beschreibung
   useEffect(() => {

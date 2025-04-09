@@ -2,11 +2,13 @@
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { useLenis } from '@/components/providers/LenisProvides';
+import { useLenis } from '@/components/providers/LenisProvider';
+import CharacterHover from '@/components/common/CharacterHover';
+import { HeroSectionProps } from '@/config/sections';
 
-// Erweiterte SplitText Komponente mit modernen Effekten
+// Erweiterte SplitText Komponente mit modernen Effekten und Hover-Effekt
 const ModernSplitText = ({ 
-  text, 
+  text = "", 
   className, 
   style, 
   delay = 0,
@@ -14,7 +16,7 @@ const ModernSplitText = ({
   charDelay = 0.02,
   animate = false
 }: {
-  text: string,
+  text?: string,
   className?: string,
   style?: React.CSSProperties,
   delay?: number,
@@ -22,8 +24,8 @@ const ModernSplitText = ({
   charDelay?: number,
   animate?: boolean
 }) => {
-  // Array mit Wörtern erstellen
-  const words = text.split(' ');
+  // Make sure text is a string and split it into words
+  const words = (text || "").split(' ');
   
   // Moderne Animation Variante mit Maskierung
   const wordVariants = {
@@ -49,15 +51,19 @@ const ModernSplitText = ({
   };
 
   return (
-    <div className={`overflow-hidden ${className}`} style={{...style, lineHeight: 1.15}}>
+    <div 
+      className={`overflow-hidden perspective-1000 ${className}`} 
+      style={{...style, lineHeight: 1.15, transformStyle: 'preserve-3d'}}
+    >
       {words.map((word, wordIndex) => (
         <div
           key={wordIndex}
-          className="inline-block overflow-hidden mr-[0.25em] align-bottom"
+          className="inline-block overflow-hidden mr-[0.25em] align-bottom transform-style-3d"
           style={{ 
             display: "inline-block", 
             willChange: "transform, opacity, filter",
-            verticalAlign: "bottom"
+            verticalAlign: "bottom",
+            transformStyle: 'preserve-3d'
           }}
         >
           <motion.span
@@ -65,15 +71,16 @@ const ModernSplitText = ({
             variants={wordVariants}
             initial="hidden"
             animate={animate ? "visible" : "hidden"}
-            className="inline-block"
+            className="inline-block transform-style-3d"
             style={{
               display: "inline-block",
               verticalAlign: "bottom",
               transformOrigin: "center bottom",
-              willChange: "transform, opacity, filter"
+              willChange: "transform, opacity, filter",
+              transformStyle: 'preserve-3d'
             }}
           >
-            {word}
+            <CharacterHover text={word || ""} />
           </motion.span>
         </div>
       ))}
@@ -81,15 +88,15 @@ const ModernSplitText = ({
   );
 };
 
-// Einzeiliger Text mit gestaffelten Buchstaben
+// Einzeiliger Text mit gestaffelten Buchstaben und Hover-Effekt
 const AnimatedSubtitle = ({
-  text,
+  text = "",
   delay = 0,
   className = "",
   style = {},
   animate = false
 }: {
-  text: string;
+  text?: string;
   delay?: number;
   className?: string;
   style?: React.CSSProperties;
@@ -115,24 +122,35 @@ const AnimatedSubtitle = ({
 
   return (
     <motion.div
-      className={`overflow-hidden ${className}`}
-      style={style}
+      className={`overflow-hidden perspective-1000 ${className}`}
+      style={{...style, transformStyle: 'preserve-3d'}}
       variants={subtitleVariants}
       initial="hidden"
       animate={animate ? "visible" : "hidden"}
     >
-      {text}
+                    <CharacterHover text={text || ""} />
     </motion.div>
   );
 };
 
-const Hero = () => {
+const Hero = ({ title, subtitle, image = "/images/interior10.jpg" }: HeroSectionProps) => {
   const sectionRef = useRef<HTMLElement>(null);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [animationStarted, setAnimationStarted] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   
-  // Entfernung der hasScrolled und scrolling-spezifischer Effekte
-  // da diese jetzt durch die ParallaxTransition gesteuert werden
+  // Check for reduced motion preference
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+
+    const handleMediaChange = (e: MediaQueryListEvent) => {
+      setPrefersReducedMotion(e.matches);
+    };
+    
+    mediaQuery.addEventListener('change', handleMediaChange);
+    return () => mediaQuery.removeEventListener('change', handleMediaChange);
+  }, []);
   
   // Intelligentes Timing für die Animation
   useEffect(() => {
@@ -142,15 +160,16 @@ const Hero = () => {
     // Animation erst später starten - nach dem Preloader
     const timer = setTimeout(() => {
       setAnimationStarted(true);
-    }, 3200); // Knapp nach Preloader (2800ms + etwas Buffer)
+    }, prefersReducedMotion ? 800 : 3200); // Kürzere Zeit bei Reduced Motion
     
     return () => clearTimeout(timer);
-  }, []);
+  }, [prefersReducedMotion]);
   
   return (
     <section
       ref={sectionRef}
       className="relative bg-neutral-900 overflow-hidden min-h-screen h-screen flex items-center"
+      aria-label="Welcome section"
     >
       {/* Full screen image container */}
       <motion.div
@@ -158,12 +177,12 @@ const Hero = () => {
         initial={{ opacity: 0 }}
         animate={{ 
           opacity: 1,
-          transition: { duration: 1.2, ease: [0.4, 0, 0.2, 1] }
+          transition: { duration: prefersReducedMotion ? 0.5 : 1.2, ease: [0.4, 0, 0.2, 1] }
         }}
       >
         <div className="absolute inset-0 bg-black/40 z-10" /> {/* Etwas dunklerer Overlay */}
         <Image
-          src="/images/interior10.jpg"
+          src={image}
           alt="Interior design showcase"
           fill
           priority
@@ -178,30 +197,22 @@ const Hero = () => {
         <div className="ml-auto w-full md:w-3/5 lg:w-1/2 flex flex-col items-start">
           {/* Haupttitel mit moderner Animation */}
           <ModernSplitText
-            text="My Sweet Home"
+            text={title}
             animate={animationStarted}
             delay={0.4} // Verzögerung nach dem Start der Animation
             className="text-7xl sm:text-8xl md:text-9xl lg:text-[9rem] font-serif tracking-wider uppercase text-left"
-            style={{ color: '#b69a7e' }}
           />
           
           {/* Untertitel */}
-          <AnimatedSubtitle
-            text="by Niloufar Jakobeit"
-            animate={animationStarted}
-            delay={1.8} // Nach der Hauptanimation
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif mt-4 sm:mt-5 md:mt-6 lg:mt-8 text-left"
-            style={{ color: '#b69a7e', willChange: 'transform, opacity' }}
-          />
-          
-          {/* Beschreibung */}
-          <AnimatedSubtitle
-            text="find our concept stores in Frankfurt, Wiesbaden and Dreieich"
-            animate={animationStarted}
-            delay={2.2} // Nach der Untertitelanimation
-            className="mt-6 sm:mt-7 md:mt-8 lg:mt-10 text-xl sm:text-2xl md:text-3xl lg:text-4xl text-left"
-            style={{ color: '#b69a7e', willChange: 'transform, opacity' }}
-          />
+          {subtitle && (
+            <AnimatedSubtitle
+              text={subtitle}
+              animate={animationStarted}
+              delay={1.8} // Nach der Hauptanimation
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif mt-4 sm:mt-5 md:mt-6 lg:mt-8 text-left"
+              style={{ willChange: 'transform, opacity' }}
+            />
+          )}
         </div>
       </div>
     </section>

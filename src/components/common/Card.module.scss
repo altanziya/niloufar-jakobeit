@@ -1,0 +1,69 @@
+.cardContainer{
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: sticky;
+    top: 0px;
+    .card{
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      top: -25%;
+      /* Noch größere Karten */
+      height: 700px;  /* von 600px auf 700px */
+      width: 1400px;  /* von 1200px auf 1400px */
+      border-radius: 25px;
+      padding: 70px;  /* von 60px auf 70px */
+      transform-origin: top;
+      h2{
+        text-align: center;
+        margin: 0px;
+        font-size: 42px;  /* von 36px auf 42px */
+      }
+      .body{
+        display: flex;
+        height: 100%;
+        margin-top: 70px;  /* von 60px auf 70px */
+        gap: 70px;  /* von 60px auf 70px */
+  
+        .description{
+          width: 40%;
+          position: relative;
+          top: 10%;
+          p{
+            font-size: 21px;  /* von 18px auf 21px */
+            &::first-letter{
+              font-size: 48px;  /* von 36px auf 48px */
+              font-family: 'Title';
+            }
+          }
+          span{
+            display: flex;
+            align-items: center;
+            gap: 8px;  /* von 5px auf 8px */
+            a{
+              font-size: 16px;  /* von 14px auf 16px */
+              text-decoration: underline;
+              cursor: pointer;
+            }
+          }
+        }
+  
+        .imageContainer{
+          position: relative;
+          width: 60%;
+          height: 100%;
+          border-radius: 30px;  /* von 25px auf 30px */
+          overflow: hidden;
+          .inner{
+            width: 100%;
+            height: 100%;
+          }
+          img{
+            object-fit: cover;
+          }
+        }
+      }
+    }
+  }
